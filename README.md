@@ -9,7 +9,7 @@ it is hard to know what they represent at first glance.
 
 SafeIDs are designed to be:
 
-- **human readable:** SafeIDs are suffixed by a _type_, followed by a 22 characters string (e.g.: `user_02Yjy1AYf1ckS6jBZ5zw3G`)
+- **human readable:** SafeIDs are prefixed by a _type_, followed by a 22 characters string (e.g.: `user_02Yjy1AYf1ckS6jBZ5zw3G`)
 - **K-sortable:** based on the UUIDv7 specification, both UUID or String representation of a SafeID are K-sortable 
 - **type-safe:** it is not possible to parse one SafeID type into another when dealing with their string representation
 - **compile-time safe:** thanks to generics, your code will not compile if you try to pass one SafeID type into another
