@@ -13,7 +13,7 @@ SafeIDs are designed to be:
 - **K-sortable:** based on the UUIDv7 specification, both UUID or String representation of a SafeID are K-sortable 
 - **type-safe:** it is not possible to parse one SafeID type into another when dealing with their string representation
 - **compile-time safe:** thanks to generics, your code will not compile if you try to pass one SafeID type into another
-- **database efficient:**: when stored into a database, SafeID are represented as regular UUIDs
+- **database efficient:** when stored into a database, SafeID can leverage `uuid` column types
 
 ## Installation
 
