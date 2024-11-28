@@ -154,7 +154,7 @@ func TestFromString(t *testing.T) {
 		{
 			"nil",
 			"",
-			[16]byte{},
+			zeroUUIDBytes,
 		},
 	}
 
@@ -436,14 +436,27 @@ func TestID_UnmarshalText(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, validUUIDBytes, genericID.uuid)
 
+	err = genericID.UnmarshalText(nil)
+	assert.NoError(t, err)
+	assert.EqualValues(t, zeroUUIDBytes, genericID.uuid)
+
 	var custID ID[test]
 	err = custID.UnmarshalText([]byte(validTypeSafeStringWithPrefix))
 	assert.NoError(t, err)
 	assert.EqualValues(t, validUUIDBytes, custID.uuid)
 
+	err = custID.UnmarshalText(nil)
+	assert.NoError(t, err)
+	assert.EqualValues(t, zeroUUIDBytes, custID.uuid)
+
 	assert.Panics(t, func() {
 		var custID ID[empty]
 		_ = custID.UnmarshalText([]byte(validTypeSafeString))
+	})
+
+	assert.Panics(t, func() {
+		var custID ID[empty]
+		_ = custID.UnmarshalText(nil)
 	})
 }
 
@@ -465,13 +478,26 @@ func TestID_Scan(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, validUUIDBytes, genericID.uuid)
 
+	err = genericID.Scan(nil)
+	assert.NoError(t, err)
+	assert.EqualValues(t, zeroUUIDBytes, genericID.uuid)
+
 	var custID ID[test]
 	err = custID.Scan(validUUIDString)
 	assert.NoError(t, err)
 	assert.EqualValues(t, validUUIDBytes, custID.uuid)
 
+	err = custID.Scan(nil)
+	assert.NoError(t, err)
+	assert.EqualValues(t, zeroUUIDBytes, custID.uuid)
+
 	assert.Panics(t, func() {
 		var custID ID[empty]
 		_ = custID.Scan(validUUIDString)
+	})
+
+	assert.Panics(t, func() {
+		var custID ID[empty]
+		_ = custID.Scan(nil)
 	})
 }
