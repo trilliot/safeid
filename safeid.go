@@ -47,44 +47,46 @@ func Must[T Prefixer](id *ID[T], err error) *ID[T] {
 
 // New creates a new type-safe identifier.
 // If the Prefixer returns an empty prefix and is not Generic, New panics.
-func New[T Prefixer]() (*ID[T], error) {
+// If an error is returned, a zero-value ID is also returned.
+func New[T Prefixer]() (ID[T], error) {
 	if prefixOf[T]() == "" && !IsGeneric[T]() {
 		panic("empty prefix is not allowed")
 	}
 
 	uuidV7, err := uuid.NewV7()
 	if err != nil {
-		return nil, err
+		return ID[T]{}, err
 	}
 
-	return &ID[T]{uuidV7}, nil
+	return ID[T]{uuidV7}, nil
 }
 
 // FromString parses the string type-safe representation of an ID.
 // If the Prefixer returns an empty prefix and is not Generic, FromString panics.
 // If the type-safe string representation doesn't max the Prefixer's prefix, FromString
 // returns ErrInvalidPrefix.
-func FromString[T Prefixer](s string) (*ID[T], error) {
+// If an error is returned, a zero-value ID is also returned.
+func FromString[T Prefixer](s string) (ID[T], error) {
 	prefix := prefixOf[T]()
 	if strings.TrimSpace(prefix) == "" && !IsGeneric[T]() {
 		panic("empty prefix is not allowed")
 	}
 
 	if s == "" {
-		return nil, nil
+		return ID[T]{}, nil
 	}
 
 	if prefix != "" {
 		var ok bool
 		s, ok = strings.CutPrefix(s, prefix+typeSeparator)
 		if !ok {
-			return nil, ParseError("invalid prefix")
+			return ID[T]{}, ParseError("invalid prefix")
 		}
 	}
 
 	i, ok := new(big.Int).SetString(s, stringCodingBase)
 	if !ok {
-		return nil, ParseError("invalid format")
+		return ID[T]{}, ParseError("invalid format")
 	}
 
 	// Add leading zeroes if necessary
@@ -92,30 +94,31 @@ func FromString[T Prefixer](s string) (*ID[T], error) {
 	b := make([]byte, 16)
 	copy(b[16-len(ib):], ib[:])
 
-	return &ID[T]{uuid.UUID(b)}, nil
+	return ID[T]{uuid.UUID(b)}, nil
 }
 
 // FromUUID parses the string UUID representation of an ID.
 // If the Prefixer returns an empty prefix and is not Generic, FromUUID panics.
-func FromUUID[T Prefixer](s string) (*ID[T], error) {
+// If an error is returned, a zero-value ID is also returned.
+func FromUUID[T Prefixer](s string) (ID[T], error) {
 	if prefixOf[T]() == "" && !IsGeneric[T]() {
 		panic("empty prefix is not allowed")
 	}
 
 	if s == "" {
-		return nil, nil
+		return ID[T]{}, nil
 	}
 
 	uuidV7, err := uuid.Parse(s)
 	if err != nil {
-		return nil, ParseError("invalid format")
+		return ID[T]{}, ParseError("invalid format")
 	}
 
-	return &ID[T]{uuidV7}, nil
+	return ID[T]{uuidV7}, nil
 }
 
 // String returns the type-safe representation of the ID as a string.
-func (id *ID[T]) String() string {
+func (id ID[T]) String() string {
 	prefix := prefixOf[T]()
 
 	i := new(big.Int).SetBytes(id.uuid[:])
@@ -131,13 +134,13 @@ func (id *ID[T]) String() string {
 }
 
 // UUID returns the UUID representation of the ID as a string.
-func (id *ID[T]) UUID() string {
+func (id ID[T]) UUID() string {
 	return id.uuid.String()
 }
 
 // MarshalText satisfies the encoding.TextMarshaler interface by encoding an ID
 // to its type-safe string representation.
-func (id *ID[T]) MarshalText() ([]byte, error) {
+func (id ID[T]) MarshalText() ([]byte, error) {
 	return []byte(id.String()), nil
 }
 
@@ -146,14 +149,14 @@ func (id *ID[T]) MarshalText() ([]byte, error) {
 func (id *ID[T]) UnmarshalText(data []byte) error {
 	v, err := FromString[T](string(data))
 	if err == nil {
-		*id = *v
+		*id = v
 	}
 	return err
 }
 
 // Value satisfies the driver.Valuer interface by returning a string representation
 // of the UUID.
-func (id *ID[T]) Value() (driver.Value, error) {
+func (id ID[T]) Value() (driver.Value, error) {
 	return id.uuid.Value()
 }
 

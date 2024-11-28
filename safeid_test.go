@@ -27,10 +27,10 @@ var (
 )
 
 var (
-	zeroUUIDBytes          = []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
-	leadingZeroesUUIDBytes = []byte{0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
-	maxUUIDBytes           = []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
-	validUUIDBytes         = []byte{0x01, 0x93, 0x50, 0x8b, 0xe8, 0x5e, 0x78, 0x12, 0xba, 0x4b, 0x91, 0xd8, 0x54, 0x95, 0xd7, 0xbc}
+	zeroUUIDBytes          = [16]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
+	leadingZeroesUUIDBytes = [16]byte{0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
+	maxUUIDBytes           = [16]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
+	validUUIDBytes         = [16]byte{0x01, 0x93, 0x50, 0x8b, 0xe8, 0x5e, 0x78, 0x12, 0xba, 0x4b, 0x91, 0xd8, 0x54, 0x95, 0xd7, 0xbc}
 )
 
 type empty struct{}
@@ -54,7 +54,7 @@ func TestIsZeroNil(t *testing.T) {
 func TestIsZero(t *testing.T) {
 	tt := []struct {
 		name       string
-		bytes      []byte
+		bytes      [16]byte
 		expOutcome bool
 	}{
 		{
@@ -79,7 +79,7 @@ func TestIsZero(t *testing.T) {
 func TestIsZeroPrefix(t *testing.T) {
 	tt := []struct {
 		name       string
-		bytes      []byte
+		bytes      [16]byte
 		expOutcome bool
 	}{
 		{
@@ -139,7 +139,7 @@ func TestFromString(t *testing.T) {
 	tt := []struct {
 		name     string
 		value    string
-		expBytes []byte
+		expBytes [16]byte
 	}{
 		{
 			"valid",
@@ -150,6 +150,11 @@ func TestFromString(t *testing.T) {
 			"leading zeroes",
 			leadingZeroesTypeSafeString,
 			leadingZeroesUUIDBytes,
+		},
+		{
+			"nil",
+			"",
+			zeroUUIDBytes,
 		},
 	}
 
@@ -166,7 +171,7 @@ func TestFromStringPrefix(t *testing.T) {
 	tt := []struct {
 		name     string
 		value    string
-		expBytes []byte
+		expBytes [16]byte
 	}{
 		{
 			"valid",
@@ -187,16 +192,6 @@ func TestFromStringPrefix(t *testing.T) {
 			assert.NoError(t, err)
 		})
 	}
-}
-
-func TestFromStringNil(t *testing.T) {
-	genericID, err := FromString[Generic]("")
-	assert.Nil(t, genericID)
-	assert.NoError(t, err)
-
-	testID, err := FromString[test]("")
-	assert.Nil(t, testID)
-	assert.NoError(t, err)
 }
 
 func TestFromStringError(t *testing.T) {
@@ -231,7 +226,7 @@ func TestFromStringError(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			errID, err := tc.f()
-			assert.Nil(t, errID)
+			assert.Empty(t, errID)
 			assert.ErrorIs(t, tc.expErr, err)
 		})
 	}
@@ -262,22 +257,20 @@ func TestFromStringEmpty(t *testing.T) {
 }
 
 func TestFromUUID(t *testing.T) {
+	nilID, err := FromUUID[Generic]("")
+	assert.Empty(t, nilID)
+	assert.NoError(t, err)
+
 	genericID, err := FromUUID[Generic](validUUIDString)
 	assert.EqualValues(t, validUUIDBytes, genericID.uuid)
 	assert.NoError(t, err)
 
+	nilCustID, err := FromUUID[test]("")
+	assert.Empty(t, nilCustID)
+	assert.NoError(t, err)
+
 	custID, err := FromUUID[test](validUUIDString)
 	assert.EqualValues(t, validUUIDBytes, custID.uuid)
-	assert.NoError(t, err)
-}
-
-func TestFroUUIDNil(t *testing.T) {
-	genericID, err := FromUUID[Generic]("")
-	assert.Nil(t, genericID)
-	assert.NoError(t, err)
-
-	nilID, err := FromUUID[test]("")
-	assert.Nil(t, nilID)
 	assert.NoError(t, err)
 }
 
@@ -299,7 +292,7 @@ func TestFromUUIDError(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			errID, err := tc.f()
-			assert.Nil(t, errID)
+			assert.Empty(t, errID)
 			assert.ErrorIs(t, ParseError("invalid format"), err)
 		})
 	}
@@ -332,7 +325,7 @@ func TestFromUUIDEmpty(t *testing.T) {
 func TestID_StringFormat(t *testing.T) {
 	tt := []struct {
 		name     string
-		bytes    []byte
+		bytes    [16]byte
 		expValue string
 	}{
 		{
@@ -363,7 +356,7 @@ func TestID_StringFormat(t *testing.T) {
 func TestIDPrefix_StringFormat(t *testing.T) {
 	tt := []struct {
 		name     string
-		bytes    []byte
+		bytes    [16]byte
 		expValue string
 	}{
 		{
@@ -394,7 +387,7 @@ func TestIDPrefix_StringFormat(t *testing.T) {
 func TestID_UUIDFormat(t *testing.T) {
 	tt := []struct {
 		name    string
-		bytes   []byte
+		bytes   [16]byte
 		expUUID string
 	}{
 		{
@@ -443,14 +436,27 @@ func TestID_UnmarshalText(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, validUUIDBytes, genericID.uuid)
 
+	err = genericID.UnmarshalText(nil)
+	assert.NoError(t, err)
+	assert.EqualValues(t, zeroUUIDBytes, genericID.uuid)
+
 	var custID ID[test]
 	err = custID.UnmarshalText([]byte(validTypeSafeStringWithPrefix))
 	assert.NoError(t, err)
 	assert.EqualValues(t, validUUIDBytes, custID.uuid)
 
+	err = custID.UnmarshalText(nil)
+	assert.NoError(t, err)
+	assert.EqualValues(t, zeroUUIDBytes, custID.uuid)
+
 	assert.Panics(t, func() {
 		var custID ID[empty]
 		_ = custID.UnmarshalText([]byte(validTypeSafeString))
+	})
+
+	assert.Panics(t, func() {
+		var custID ID[empty]
+		_ = custID.UnmarshalText(nil)
 	})
 }
 
@@ -462,7 +468,7 @@ func TestID_Value(t *testing.T) {
 
 	custID := ID[test]{uuid.UUID(validUUIDBytes)}
 	res, err = custID.MarshalText()
-	assert.Equal(t, validUUIDString, res)
+	assert.Equal(t, []byte(validTypeSafeStringWithPrefix), res)
 	assert.NoError(t, err)
 }
 
@@ -472,13 +478,26 @@ func TestID_Scan(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, validUUIDBytes, genericID.uuid)
 
+	err = genericID.Scan(nil)
+	assert.NoError(t, err)
+	assert.EqualValues(t, zeroUUIDBytes, genericID.uuid)
+
 	var custID ID[test]
 	err = custID.Scan(validUUIDString)
 	assert.NoError(t, err)
 	assert.EqualValues(t, validUUIDBytes, custID.uuid)
 
+	err = custID.Scan(nil)
+	assert.NoError(t, err)
+	assert.EqualValues(t, zeroUUIDBytes, custID.uuid)
+
 	assert.Panics(t, func() {
 		var custID ID[empty]
 		_ = custID.Scan(validUUIDString)
+	})
+
+	assert.Panics(t, func() {
+		var custID ID[empty]
+		_ = custID.Scan(nil)
 	})
 }
