@@ -2,10 +2,10 @@ package safeid
 
 import (
 	"errors"
+	"reflect"
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -43,10 +43,10 @@ func (test) Prefix() string { return "test" }
 
 func TestIsZeroNil(t *testing.T) {
 	var nilID ID[Generic]
-	assert.True(t, IsZero(nilID))
+	assertEqual(t, true, IsZero(nilID))
 
 	var nilTypedID ID[test]
-	assert.True(t, IsZero(nilTypedID))
+	assertEqual(t, true, IsZero(nilTypedID))
 }
 
 func TestIsZero(t *testing.T) {
@@ -69,7 +69,7 @@ func TestIsZero(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			assert.Equal(t, tc.expOutcome, IsZero(ID[Generic]{uuid.UUID(tc.bytes)}))
+			assertEqual(t, tc.expOutcome, IsZero(ID[Generic]{uuid.UUID(tc.bytes)}))
 		})
 	}
 }
@@ -94,26 +94,26 @@ func TestIsZeroPrefix(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			assert.Equal(t, tc.expOutcome, IsZero(ID[test]{uuid.UUID(tc.bytes)}))
+			assertEqual(t, tc.expOutcome, IsZero(ID[test]{uuid.UUID(tc.bytes)}))
 		})
 	}
 }
 
 func TestMust(t *testing.T) {
 	genericID := ID[Generic]{uuid.UUID(validUUIDBytes)}
-	assert.Equal(t, genericID, Must[Generic](genericID, nil))
+	assertEqual(t, genericID, Must[Generic](genericID, nil))
 
 	custID := ID[test]{uuid.UUID(validUUIDBytes)}
-	assert.Equal(t, custID, Must[test](custID, nil))
+	assertEqual(t, custID, Must[test](custID, nil))
 }
 
 func TestMustPanic(t *testing.T) {
-	assert.Panics(t, func() {
+	assertPanics(t, func() {
 		genericID := ID[Generic]{uuid.UUID(validUUIDBytes)}
 		Must[Generic](genericID, errors.New("error"))
 	})
 
-	assert.Panics(t, func() {
+	assertPanics(t, func() {
 		custID := ID[test]{uuid.UUID(validUUIDBytes)}
 		Must[test](custID, errors.New("error"))
 	})
@@ -121,14 +121,14 @@ func TestMustPanic(t *testing.T) {
 
 func TestNew(t *testing.T) {
 	genericID, err := New[Generic]()
-	assert.NotZero(t, genericID.uuid)
-	assert.NoError(t, err)
+	assertNotZero(t, genericID.uuid)
+	assertErrorIs(t, err, nil)
 
 	custID, err := New[test]()
-	assert.NotZero(t, custID.uuid)
-	assert.NoError(t, err)
+	assertNotZero(t, custID.uuid)
+	assertErrorIs(t, err, nil)
 
-	assert.Panics(t, func() {
+	assertPanics(t, func() {
 		_, _ = New[empty]()
 	})
 }
@@ -159,8 +159,8 @@ func TestFromString(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			custID, err := FromString[Generic](tc.value)
-			assert.EqualValues(t, tc.expBytes, custID.uuid)
-			assert.NoError(t, err)
+			assertEqual(t, tc.expBytes[:], custID.uuid[:])
+			assertErrorIs(t, err, nil)
 		})
 	}
 }
@@ -186,8 +186,8 @@ func TestFromStringPrefix(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			custID, err := FromString[test](tc.value)
-			assert.EqualValues(t, tc.expBytes, custID.uuid)
-			assert.NoError(t, err)
+			assertEqual(t, tc.expBytes[:], custID.uuid[:])
+			assertErrorIs(t, err, nil)
 		})
 	}
 }
@@ -224,8 +224,8 @@ func TestFromStringError(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			errID, err := tc.f()
-			assert.Empty(t, errID)
-			assert.ErrorIs(t, tc.expErr, err)
+			assertZero(t, errID)
+			assertErrorIs(t, tc.expErr, err)
 		})
 	}
 }
@@ -247,7 +247,7 @@ func TestFromStringEmpty(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			assert.Panics(t, func() {
+			assertPanics(t, func() {
 				_, _ = FromString[empty](tc.value)
 			})
 		})
@@ -256,20 +256,20 @@ func TestFromStringEmpty(t *testing.T) {
 
 func TestFromUUID(t *testing.T) {
 	nilID, err := FromUUID[Generic]("")
-	assert.Empty(t, nilID)
-	assert.NoError(t, err)
+	assertZero(t, nilID)
+	assertErrorIs(t, err, nil)
 
 	genericID, err := FromUUID[Generic](validUUIDString)
-	assert.EqualValues(t, validUUIDBytes, genericID.uuid)
-	assert.NoError(t, err)
+	assertEqual(t, validUUIDBytes[:], genericID.uuid[:])
+	assertErrorIs(t, err, nil)
 
 	nilCustID, err := FromUUID[test]("")
-	assert.Empty(t, nilCustID)
-	assert.NoError(t, err)
+	assertZero(t, nilCustID)
+	assertErrorIs(t, err, nil)
 
 	custID, err := FromUUID[test](validUUIDString)
-	assert.EqualValues(t, validUUIDBytes, custID.uuid)
-	assert.NoError(t, err)
+	assertEqual(t, validUUIDBytes[:], custID.uuid[:])
+	assertErrorIs(t, err, nil)
 }
 
 func TestFromUUIDError(t *testing.T) {
@@ -290,8 +290,8 @@ func TestFromUUIDError(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			errID, err := tc.f()
-			assert.Empty(t, errID)
-			assert.ErrorIs(t, ParseError("invalid format"), err)
+			assertZero(t, errID)
+			assertErrorIs(t, ParseError("invalid format"), err)
 		})
 	}
 }
@@ -313,7 +313,7 @@ func TestFromUUIDEmpty(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			assert.Panics(t, func() {
+			assertPanics(t, func() {
 				_, _ = FromUUID[empty](tc.value)
 			})
 		})
@@ -346,7 +346,7 @@ func TestID_StringFormat(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			genericID := ID[Generic]{uuid.UUID(tc.bytes)}
-			assert.Equal(t, tc.expValue, genericID.String())
+			assertEqual(t, tc.expValue, genericID.String())
 		})
 	}
 }
@@ -377,7 +377,7 @@ func TestIDPrefix_StringFormat(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			genericID := ID[test]{uuid.UUID(tc.bytes)}
-			assert.Equal(t, tc.expValue, genericID.String())
+			assertEqual(t, tc.expValue, genericID.String())
 		})
 	}
 }
@@ -408,10 +408,10 @@ func TestID_UUIDFormat(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			genericID := ID[Generic]{uuid.UUID(tc.bytes)}
-			assert.Equal(t, tc.expUUID, genericID.UUID())
+			assertEqual(t, tc.expUUID, genericID.UUID())
 
 			custID := ID[test]{uuid.UUID(tc.bytes)}
-			assert.Equal(t, tc.expUUID, custID.UUID())
+			assertEqual(t, tc.expUUID, custID.UUID())
 		})
 	}
 }
@@ -419,40 +419,40 @@ func TestID_UUIDFormat(t *testing.T) {
 func TestMarshalText(t *testing.T) {
 	genericID := ID[Generic]{uuid.UUID(validUUIDBytes)}
 	res, err := genericID.MarshalText()
-	assert.Equal(t, validTypeSafeString, string(res))
-	assert.NoError(t, err)
+	assertEqual(t, validTypeSafeString, string(res))
+	assertErrorIs(t, err, nil)
 
 	custID := ID[test]{uuid.UUID(validUUIDBytes)}
 	res, err = custID.MarshalText()
-	assert.Equal(t, validTypeSafeStringWithPrefix, string(res))
-	assert.NoError(t, err)
+	assertEqual(t, validTypeSafeStringWithPrefix, string(res))
+	assertErrorIs(t, err, nil)
 }
 
 func TestID_UnmarshalText(t *testing.T) {
 	var genericID ID[Generic]
 	err := genericID.UnmarshalText([]byte(validTypeSafeString))
-	assert.NoError(t, err)
-	assert.EqualValues(t, validUUIDBytes, genericID.uuid)
+	assertErrorIs(t, err, nil)
+	assertEqual(t, validUUIDBytes[:], genericID.uuid[:])
 
 	err = genericID.UnmarshalText(nil)
-	assert.NoError(t, err)
-	assert.EqualValues(t, zeroUUIDBytes, genericID.uuid)
+	assertErrorIs(t, err, nil)
+	assertEqual(t, zeroUUIDBytes[:], genericID.uuid[:])
 
 	var custID ID[test]
 	err = custID.UnmarshalText([]byte(validTypeSafeStringWithPrefix))
-	assert.NoError(t, err)
-	assert.EqualValues(t, validUUIDBytes, custID.uuid)
+	assertErrorIs(t, err, nil)
+	assertEqual(t, validUUIDBytes[:], custID.uuid[:])
 
 	err = custID.UnmarshalText(nil)
-	assert.NoError(t, err)
-	assert.EqualValues(t, zeroUUIDBytes, custID.uuid)
+	assertErrorIs(t, err, nil)
+	assertEqual(t, zeroUUIDBytes[:], custID.uuid[:])
 
-	assert.Panics(t, func() {
+	assertPanics(t, func() {
 		var custID ID[empty]
 		_ = custID.UnmarshalText([]byte(validTypeSafeString))
 	})
 
-	assert.Panics(t, func() {
+	assertPanics(t, func() {
 		var custID ID[empty]
 		_ = custID.UnmarshalText(nil)
 	})
@@ -461,41 +461,80 @@ func TestID_UnmarshalText(t *testing.T) {
 func TestID_Value(t *testing.T) {
 	genericID := ID[Generic]{uuid.UUID(validUUIDBytes)}
 	res, err := genericID.Value()
-	assert.Equal(t, validUUIDString, res)
-	assert.NoError(t, err)
+	assertEqual(t, validUUIDString, res)
+	assertErrorIs(t, err, nil)
 
 	custID := ID[test]{uuid.UUID(validUUIDBytes)}
 	res, err = custID.MarshalText()
-	assert.Equal(t, []byte(validTypeSafeStringWithPrefix), res)
-	assert.NoError(t, err)
+	assertEqual(t, []byte(validTypeSafeStringWithPrefix), res)
+	assertErrorIs(t, err, nil)
 }
 
 func TestID_Scan(t *testing.T) {
 	var genericID ID[Generic]
 	err := genericID.Scan(validUUIDString)
-	assert.NoError(t, err)
-	assert.EqualValues(t, validUUIDBytes, genericID.uuid)
+	assertErrorIs(t, err, nil)
+	assertEqual(t, validUUIDBytes[:], genericID.uuid[:])
 
 	err = genericID.Scan(nil)
-	assert.NoError(t, err)
-	assert.EqualValues(t, zeroUUIDBytes, genericID.uuid)
+	assertErrorIs(t, err, nil)
+	assertEqual(t, zeroUUIDBytes[:], genericID.uuid[:])
 
 	var custID ID[test]
 	err = custID.Scan(validUUIDString)
-	assert.NoError(t, err)
-	assert.EqualValues(t, validUUIDBytes, custID.uuid)
+	assertErrorIs(t, err, nil)
+	assertEqual(t, validUUIDBytes[:], custID.uuid[:])
 
 	err = custID.Scan(nil)
-	assert.NoError(t, err)
-	assert.EqualValues(t, zeroUUIDBytes, custID.uuid)
+	assertErrorIs(t, err, nil)
+	assertEqual(t, zeroUUIDBytes[:], custID.uuid[:])
 
-	assert.Panics(t, func() {
+	assertPanics(t, func() {
 		var custID ID[empty]
 		_ = custID.Scan(validUUIDString)
 	})
 
-	assert.Panics(t, func() {
+	assertPanics(t, func() {
 		var custID ID[empty]
 		_ = custID.Scan(nil)
 	})
+}
+
+func assertErrorIs(t *testing.T, err error, expErr error) {
+	t.Helper()
+	if !errors.Is(err, expErr) {
+		t.Errorf("expected error %#v, got %#v", expErr, err)
+	}
+}
+
+func assertEqual(t *testing.T, exp, v any) {
+	t.Helper()
+	if !reflect.DeepEqual(exp, v) {
+		t.Errorf("expected %#v, got %#v", exp, v)
+	}
+}
+
+func assertPanics(t *testing.T, f func()) {
+	t.Helper()
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("expected panic did not happened")
+		}
+	}()
+	f()
+}
+
+func assertZero[T any](t *testing.T, v T) {
+	zero := reflect.Zero(reflect.TypeOf(v)).Interface()
+	if !reflect.DeepEqual(v, zero) {
+		t.Errorf("expected zero-value, got %#v", v)
+	}
+}
+
+func assertNotZero[T any](t *testing.T, v T) {
+	t.Helper()
+	zero := reflect.Zero(reflect.TypeOf(v)).Interface()
+	if reflect.DeepEqual(v, zero) {
+		t.Errorf("expected non zero-value, got %#v", v)
+	}
 }
