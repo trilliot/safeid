@@ -30,15 +30,12 @@ type ID[T Prefixer] struct {
 }
 
 // IsZero checks if the provided ID is nil or set to its zero-value.
-func IsZero[T Prefixer](id *ID[T]) bool {
-	if id == nil {
-		return true
-	}
+func IsZero[T Prefixer](id ID[T]) bool {
 	return id.uuid == uuid.UUID{}
 }
 
 // Must panics if err != nil, otherwise it returns id.
-func Must[T Prefixer](id *ID[T], err error) *ID[T] {
+func Must[T Prefixer](id ID[T], err error) ID[T] {
 	if err != nil {
 		panic(err)
 	}
