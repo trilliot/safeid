@@ -42,12 +42,10 @@ type test struct{}
 func (test) Prefix() string { return "test" }
 
 func TestIsZeroNil(t *testing.T) {
-	assert.True(t, IsZero[Generic](nil))
-
-	var nilID *ID[Generic]
+	var nilID ID[Generic]
 	assert.True(t, IsZero(nilID))
 
-	var nilTypedID *ID[test]
+	var nilTypedID ID[test]
 	assert.True(t, IsZero(nilTypedID))
 }
 
@@ -71,7 +69,7 @@ func TestIsZero(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			assert.Equal(t, tc.expOutcome, IsZero(&(ID[Generic]{uuid.UUID(tc.bytes)})))
+			assert.Equal(t, tc.expOutcome, IsZero(ID[Generic]{uuid.UUID(tc.bytes)}))
 		})
 	}
 }
@@ -96,28 +94,28 @@ func TestIsZeroPrefix(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			assert.Equal(t, tc.expOutcome, IsZero(&(ID[test]{uuid.UUID(tc.bytes)})))
+			assert.Equal(t, tc.expOutcome, IsZero(ID[test]{uuid.UUID(tc.bytes)}))
 		})
 	}
 }
 
 func TestMust(t *testing.T) {
 	genericID := ID[Generic]{uuid.UUID(validUUIDBytes)}
-	assert.Equal(t, &genericID, Must[Generic](&genericID, nil))
+	assert.Equal(t, genericID, Must[Generic](genericID, nil))
 
 	custID := ID[test]{uuid.UUID(validUUIDBytes)}
-	assert.Equal(t, &custID, Must[test](&custID, nil))
+	assert.Equal(t, custID, Must[test](custID, nil))
 }
 
 func TestMustPanic(t *testing.T) {
 	assert.Panics(t, func() {
 		genericID := ID[Generic]{uuid.UUID(validUUIDBytes)}
-		Must[Generic](&genericID, errors.New("error"))
+		Must[Generic](genericID, errors.New("error"))
 	})
 
 	assert.Panics(t, func() {
 		custID := ID[test]{uuid.UUID(validUUIDBytes)}
-		Must[test](&custID, errors.New("error"))
+		Must[test](custID, errors.New("error"))
 	})
 }
 
