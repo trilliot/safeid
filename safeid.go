@@ -151,6 +151,43 @@ func (id *ID[T]) UnmarshalText(data []byte) error {
 	return err
 }
 
+// MarshalBinary satisfies the encoding.BinaryMarshaler interface by encoding an ID
+// to its prefix length and value, and UUID bytes.
+func (id ID[T]) MarshalBinary() ([]byte, error) {
+	p := prefixOf[T]()
+	b := []byte{byte(len(p))}
+	b = append(b, p...)
+	b = append(b, id.uuid[:]...)
+	return b, nil
+}
+
+// UnmarshalBinary satisfies the encoding.BinaryUnmarshaler interface by decoding a
+// UUID string representation.
+func (id *ID[T]) UnmarshalBinary(data []byte) error {
+	if (len(data) == 0 || data[0] == 0) && !IsGeneric[T]() {
+		panic("empty prefix is not allowed")
+	}
+	if len(data) == 0 {
+		*id = ID[T]{}
+		return nil
+	}
+
+	l := int(data[0])
+	if len(data) < l+17 { // prefix length byte + prefix + uuid length
+		return ParseError("invalid length")
+	}
+
+	if l > 0 {
+		prefix := string(data[1 : l+1])
+		if prefix != prefixOf[T]() {
+			return ParseError("invalid prefix")
+		}
+	}
+
+	*id = ID[T]{uuid.UUID(data[l+1:])}
+	return nil
+}
+
 // Value satisfies the driver.Valuer interface by returning a string representation
 // of the UUID.
 func (id ID[T]) Value() (driver.Value, error) {
