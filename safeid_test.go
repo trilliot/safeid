@@ -451,13 +451,13 @@ func TestID_UnmarshalText(t *testing.T) {
 	assertEqual(t, zeroUUIDBytes[:], custID.uuid[:])
 
 	assertPanics(t, func() {
-		var custID ID[empty]
-		_ = custID.UnmarshalText([]byte(validTypeSafeString))
+		var genericID ID[empty]
+		_ = genericID.UnmarshalText([]byte(validTypeSafeString))
 	})
 
 	assertPanics(t, func() {
-		var custID ID[empty]
-		_ = custID.UnmarshalText(nil)
+		var genericID ID[empty]
+		_ = genericID.UnmarshalText(nil)
 	})
 }
 
@@ -479,51 +479,49 @@ func TestID_UnmarshalBinary(t *testing.T) {
 	assertErrorIs(t, err, nil)
 	assertEqual(t, validUUIDBytes[:], genericID.uuid[:])
 
-	// err = genericID.UnmarshalBinary(nil)
-	// assertErrorIs(t, err, ParseError("invalid length"))
-	// assertZero(t, genericID.uuid[:])
+	err = genericID.UnmarshalBinary(nil)
+	assertErrorIs(t, err, nil)
+	assertEqual(t, zeroUUIDBytes[:], genericID.uuid[:])
 
 	var custID ID[test]
 	err = custID.UnmarshalBinary(validTypeSafeBinaryWithPrefix)
 	assertErrorIs(t, err, nil)
 	assertEqual(t, validUUIDBytes[:], custID.uuid[:])
 
-	// err = custID.UnmarshalBinary(nil)
-	// assertErrorIs(t, err, nil)
-	// assertEqual(t, zeroUUIDBytes[:], custID.uuid[:])
-
 	assertPanics(t, func() {
-		var custID ID[empty]
-		_ = custID.UnmarshalBinary(validTypeSafeBinary)
+		var genericID ID[empty]
+		_ = genericID.UnmarshalBinary(validTypeSafeBinary)
 	})
 
 	assertPanics(t, func() {
-		var custID ID[empty]
+		var genericID ID[empty]
+		_ = genericID.UnmarshalBinary(nil)
+	})
+
+	assertPanics(t, func() {
+		var custID ID[test]
 		_ = custID.UnmarshalBinary(nil)
 	})
 }
 
 func TestID_UnmarshalBinary_Error(t *testing.T) {
+	temperedBinary := append([]byte{0x04, 0x6e, 0x6f, 0x70, 0x65}, validUUIDBytes[:]...)
+
 	var genericID ID[Generic]
-	err := genericID.UnmarshalBinary(nil)
+	err := genericID.UnmarshalBinary(validTypeSafeBinary[1:])
 	assertErrorIs(t, err, ParseError("invalid length"))
 	assertEqual(t, zeroUUIDBytes[:], genericID.uuid[:])
 
-	err = genericID.UnmarshalBinary(validTypeSafeBinary[1:])
-	assertErrorIs(t, err, ParseError("invalid length"))
+	err = genericID.UnmarshalBinary(temperedBinary)
+	assertErrorIs(t, err, ParseError("invalid prefix"))
 	assertEqual(t, zeroUUIDBytes[:], genericID.uuid[:])
 
 	var custID ID[test]
-	err = custID.UnmarshalBinary(nil)
-	assertErrorIs(t, err, ParseError("invalid length"))
-	assertEqual(t, zeroUUIDBytes[:], custID.uuid[:])
-
 	err = custID.UnmarshalBinary(validTypeSafeBinaryWithPrefix[1:])
 	assertErrorIs(t, err, ParseError("invalid length"))
 	assertEqual(t, zeroUUIDBytes[:], custID.uuid[:])
 
-	tempered := append([]byte{0x04, 0x6e, 0x6f, 0x70, 0x65}, validUUIDBytes[:]...)
-	err = custID.UnmarshalBinary(tempered)
+	err = custID.UnmarshalBinary(temperedBinary)
 	assertErrorIs(t, err, ParseError("invalid prefix"))
 	assertEqual(t, zeroUUIDBytes[:], custID.uuid[:])
 }
@@ -560,13 +558,13 @@ func TestID_Scan(t *testing.T) {
 	assertEqual(t, zeroUUIDBytes[:], custID.uuid[:])
 
 	assertPanics(t, func() {
-		var custID ID[empty]
-		_ = custID.Scan(validUUIDString)
+		var genericID ID[empty]
+		_ = genericID.Scan(validUUIDString)
 	})
 
 	assertPanics(t, func() {
-		var custID ID[empty]
-		_ = custID.Scan(nil)
+		var genericID ID[empty]
+		_ = genericID.Scan(nil)
 	})
 }
 

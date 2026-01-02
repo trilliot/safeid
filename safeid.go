@@ -164,14 +164,15 @@ func (id ID[T]) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary satisfies the encoding.BinaryUnmarshaler interface by decoding a
 // UUID string representation.
 func (id *ID[T]) UnmarshalBinary(data []byte) error {
+	if (len(data) == 0 || data[0] == 0) && !IsGeneric[T]() {
+		panic("empty prefix is not allowed")
+	}
 	if len(data) == 0 {
-		return ParseError("invalid length")
+		*id = ID[T]{}
+		return nil
 	}
 
 	l := int(data[0])
-	if l == 0 && !IsGeneric[T]() {
-		panic("empty prefix is not allowed")
-	}
 	if len(data) < l+17 { // prefix length byte + prefix + uuid length
 		return ParseError("invalid length")
 	}
