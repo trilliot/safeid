@@ -24,6 +24,9 @@ var (
 	validUUIDString               = "0193508b-e85e-7812-ba4b-91d85495d7bc"
 	validTypeSafeString           = "02Yjy1AYf1ckS6jBZ5zw3G"
 	validTypeSafeStringWithPrefix = "test_02Yjy1AYf1ckS6jBZ5zw3G"
+
+	validTypeSafeBinary           = append([]byte{0x00}, validUUIDBytes[:]...)
+	validTypeSafeBinaryWithPrefix = append([]byte{0x04, 0x74, 0x65, 0x73, 0x74}, validUUIDBytes[:]...)
 )
 
 var (
@@ -456,6 +459,73 @@ func TestID_UnmarshalText(t *testing.T) {
 		var custID ID[empty]
 		_ = custID.UnmarshalText(nil)
 	})
+}
+
+func TestMarshalBinary(t *testing.T) {
+	genericID := ID[Generic]{uuid.UUID(validUUIDBytes)}
+	res, err := genericID.MarshalBinary()
+	assertEqual(t, validTypeSafeBinary, res)
+	assertErrorIs(t, err, nil)
+
+	custID := ID[test]{uuid.UUID(validUUIDBytes)}
+	res, err = custID.MarshalBinary()
+	assertEqual(t, validTypeSafeBinaryWithPrefix, res)
+	assertErrorIs(t, err, nil)
+}
+
+func TestID_UnmarshalBinary(t *testing.T) {
+	var genericID ID[Generic]
+	err := genericID.UnmarshalBinary(validTypeSafeBinary)
+	assertErrorIs(t, err, nil)
+	assertEqual(t, validUUIDBytes[:], genericID.uuid[:])
+
+	// err = genericID.UnmarshalBinary(nil)
+	// assertErrorIs(t, err, ParseError("invalid length"))
+	// assertZero(t, genericID.uuid[:])
+
+	var custID ID[test]
+	err = custID.UnmarshalBinary(validTypeSafeBinaryWithPrefix)
+	assertErrorIs(t, err, nil)
+	assertEqual(t, validUUIDBytes[:], custID.uuid[:])
+
+	// err = custID.UnmarshalBinary(nil)
+	// assertErrorIs(t, err, nil)
+	// assertEqual(t, zeroUUIDBytes[:], custID.uuid[:])
+
+	assertPanics(t, func() {
+		var custID ID[empty]
+		_ = custID.UnmarshalBinary(validTypeSafeBinary)
+	})
+
+	assertPanics(t, func() {
+		var custID ID[empty]
+		_ = custID.UnmarshalBinary(nil)
+	})
+}
+
+func TestID_UnmarshalBinary_Error(t *testing.T) {
+	var genericID ID[Generic]
+	err := genericID.UnmarshalBinary(nil)
+	assertErrorIs(t, err, ParseError("invalid length"))
+	assertEqual(t, zeroUUIDBytes[:], genericID.uuid[:])
+
+	err = genericID.UnmarshalBinary(validTypeSafeBinary[1:])
+	assertErrorIs(t, err, ParseError("invalid length"))
+	assertEqual(t, zeroUUIDBytes[:], genericID.uuid[:])
+
+	var custID ID[test]
+	err = custID.UnmarshalBinary(nil)
+	assertErrorIs(t, err, ParseError("invalid length"))
+	assertEqual(t, zeroUUIDBytes[:], custID.uuid[:])
+
+	err = custID.UnmarshalBinary(validTypeSafeBinaryWithPrefix[1:])
+	assertErrorIs(t, err, ParseError("invalid length"))
+	assertEqual(t, zeroUUIDBytes[:], custID.uuid[:])
+
+	tempered := append([]byte{0x04, 0x6e, 0x6f, 0x70, 0x65}, validUUIDBytes[:]...)
+	err = custID.UnmarshalBinary(tempered)
+	assertErrorIs(t, err, ParseError("invalid prefix"))
+	assertEqual(t, zeroUUIDBytes[:], custID.uuid[:])
 }
 
 func TestID_Value(t *testing.T) {
